@@ -1,0 +1,2 @@
+[2025-08-10 18:41:38,937] 20 networksecurity - INFO - Entered the try block
+[2025-08-10 18:41:38,937] 25 networksecurity - ERROR - Error occurred in Python script [C:\Users\acer\CyberSecurity\networksecurity\exception\exception.py] at line [21]: division by zero
