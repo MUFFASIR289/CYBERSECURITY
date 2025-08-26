@@ -49,14 +49,14 @@ class NetworkDataExtract:
 if __name__ == '__main__':
     try:
         FILE_PATH = "Network_Data/PhishingData.csv"
-        DATABASE = "CyverSecurity"           # ✅ Corrected spelling
-        COLLECTION = "Network_Data"          # ✅ Matches your pipeline
+        DATABASE = "CyverSecurity"           
+        COLLECTION = "Network_Data"          
 
         networkobj = NetworkDataExtract()
         records = networkobj.csv_to_json_convertor(file_path=FILE_PATH)
-        print(f"📄 Sample record: {records[0] if records else 'No records found'}")
+        print(f" Sample record: {records[0] if records else 'No records found'}")
 
         no_of_records = networkobj.insert_data_mongodb(records, DATABASE, COLLECTION)
-        print(f"✅ Number of records inserted: {no_of_records}")
+        print(f" Number of records inserted: {no_of_records}")
     except Exception as e:
-        print(f"❌ Failed to insert data: {e}")
+        print(f" Failed to insert data: {e}")
