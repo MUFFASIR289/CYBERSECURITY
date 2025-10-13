@@ -10,6 +10,7 @@ import numpy as np
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 MONGO_DB_URL = os.getenv("MONGO_DB_URL")
@@ -26,51 +27,69 @@ class DataIngestion:
             database_name = self.data_ingestion_config.database_name
             collection_name = self.data_ingestion_config.collection_name
 
-            # Connect to MongoDB
+            print("📁 Using database:", database_name)
+            print("📂 Using collection:", collection_name)
+
             client = MongoClient(MONGO_DB_URL)
             collection = client[database_name][collection_name]
 
-            df = pd.DataFrame(list(collection.find()))
-            logging.info(f"✅ Fetched {len(df)} records from MongoDB")
+            docs = list(collection.find())
+            print("📦 Sample documents:", docs[:2])
+            raw_df = pd.DataFrame(docs)
+            logging.info(f"✅ Fetched {len(raw_df)} records from MongoDB")
 
-            # Drop MongoDB internal ID
-            if "_id" in df.columns:
-                df.drop(columns=["_id"], inplace=True)
+            if raw_df.empty:
+                raise NetworkSecurityException("❌ No documents found in MongoDB collection", sys)
 
-            # Rename malformed fields first
-            rename_map = {
-                "having_IPhaving_IP_Address ": "having_IP_Address",
-                "URLURL_Length ": "URL_Length",
-                "Domain_registeration_length ": "Domain_Registeration_Length"
-            }
-            df.rename(columns=rename_map, inplace=True)
+            if "_id" in raw_df.columns:
+                raw_df.drop(columns=["_id"], inplace=True)
 
-            # Drop unwanted and malformed columns
-            drop_columns = [
-                "index ", "having_Sub_Domain ",
-                "having_IPhaving_IP_Address ", "URLURL_Length ", "Domain_registeration_length "
-            ]
-            for col in drop_columns:
-                if col in df.columns:
-                    df.drop(columns=[col], inplace=True)
-                    logging.warning(f"⚠️ Dropped malformed column: {col}")
+            logging.info(f"🧪 Raw column names before cleaning: {raw_df.columns.tolist()}")
+            print("🧪 Raw columns from MongoDB:", raw_df.columns.tolist())
 
             # Clean column names
-            df.columns = df.columns.str.strip().str.replace(" ", "_").str.replace(r"[^\w]", "", regex=True)
+            cleaned_columns = [
+                re.sub(r"[^\w]", "", str(col).strip().replace(" ", "_"))
+                for col in raw_df.columns
+            ]
+            raw_df.columns = pd.Index(cleaned_columns)
+            logging.info(f"🧼 Cleaned column names: {raw_df.columns.tolist()}")
+
+            # Rename malformed fields
+            rename_map = {
+                "having_IPhaving_IP_Address": "having_IP_Address",
+                "URLURL_Length": "URL_Length",
+                "Domain_registeration_length": "Domain_Registeration_Length"
+            }
+            raw_df.rename(columns=rename_map, inplace=True)
+
+            # Drop unwanted columns
+            drop_columns = ["index", "having_Sub_Domain"]
+            for col in drop_columns:
+                if col in raw_df.columns:
+                    raw_df.drop(columns=[col], inplace=True)
+                    logging.warning(f"⚠️ Dropped extra column: {col}")
 
             # Ensure required columns exist
             required_columns = [
                 "having_IP_Address", "URL_Length", "Domain_Registeration_Length"
             ]
             for col in required_columns:
-                if col not in df.columns:
-                    df[col] = np.nan
+                if col not in raw_df.columns:
+                    raw_df[col] = np.nan
                     logging.warning(f"⚠️ Added missing column: {col} with NaN values")
 
-            df.replace({"na": np.nan}, inplace=True)
+            raw_df.replace({"na": np.nan}, inplace=True)
 
-            logging.info(f"📋 Final columns after cleaning: {df.columns.tolist()}")
-            return df
+            logging.info(f"📊 Final DataFrame shape: {raw_df.shape}")
+            logging.info(f"📋 Final columns after cleaning: {raw_df.columns.tolist()}")
+            print(raw_df.head())
+
+            if raw_df.empty:
+                raise NetworkSecurityException("❌ DataFrame is empty after cleaning", sys)
+
+            return raw_df
+
         except Exception as e:
             raise NetworkSecurityException(e, sys)
 
@@ -113,6 +132,7 @@ class DataIngestion:
 
     def initiate_data_ingestion(self) -> DataIngestionArtifact:
         try:
+            print("✅ Running correct version of DataIngestion class")
             df = self.export_collection_as_dataframe()
             df = self.export_data_into_feature_store(df)
             train_set, test_set = self.split_data_as_train_test(df)

@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/93820f7877c249b1ba883e47f0ca2827/artifacts
+end_time: 1757864941370
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 93820f7877c249b1ba883e47f0ca2827
+run_name: GradientBoostingClassifier
+run_uuid: 93820f7877c249b1ba883e47f0ca2827
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1757864933331
+status: 4
+tags: []
+user_id: acer
